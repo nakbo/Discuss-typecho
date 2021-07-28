@@ -20,7 +20,7 @@ class Discuss_Plugin implements Typecho_Plugin_Interface
         * 使用Typecho_Http_Client
         */ 
         if ( false == Typecho_Http_Client::get() ) {
-         throw new Typecho_Plugin_Exception( _t( '你的服务器并不支持curl!' ) );
+         //throw new Typecho_Plugin_Exception( _t( '你的服务器并不支持curl!' ) );
         }
         Typecho_Plugin::factory('Widget_Feedback')->comment = ['Discuss_Plugin', 'feedback'];
         Typecho_Plugin::factory('Widget_Feedback')->trackback = ['Discuss_Plugin', 'feedback'];
@@ -56,23 +56,26 @@ class Discuss_Plugin implements Typecho_Plugin_Interface
             false => '关闭',
             true => '开启'
         ), false, _t('检查作者'), '是否检查作者的评论，开启则作者也应验证是否合法评论');        
-        $form->addInput($element);
+        $form->addInput($t);
         
         $t = new Typecho_Widget_Helper_Form_Element_Radio(
             'ExpectionHandler', array(
-            false => '忽略评论',
-            true => '返回评论'
-        ), true, _t('紧急异常'), '当评论过滤发生错误时,你可以选择的操作');
+            true => '返回评论',
+            false => '忽略评论'
+        ), true, _t('紧急异常'), '当评论过滤发生错误时,你可以选择的操作');       
+        $form->addInput($t);
         
-        $form->addInput($element);
         $t = new Typecho_Widget_Helper_Form_Element_Text('authObj', null, null, _t('AuthObj'), _t("此处是缓存Token"));
-        $form->addInput($t->input->setAttribute('readonly', 'readonly'));
+        $t->input->setAttribute('readonly', 'readonly');
+        $form->addInput($t);
         
         $t = new Typecho_Widget_Helper_Form_Element_Text('au_length_min', NULL, '2', '昵称最短字符数', '昵称允许的最短字符数。');        
-        $form->addInput($t->input->setAttribute('class', 'mini'));
+        $t->input->setAttribute('class', 'mini');
+        $form->addInput($t);
         
-        $t = new Typecho_Widget_Helper_Form_Element_Text('au_length_max', NULL, '15', '昵称最长字符数', '昵称允许的最长字符数');        
-        $form->addInput($t->input->setAttribute('class', 'mini'));
+        $t = new Typecho_Widget_Helper_Form_Element_Text('au_length_max', NULL, '15', '昵称最长字符数', '昵称允许的最长字符数');  
+        $t->input->setAttribute('class', 'mini');      
+        $form->addInput($t);
         
         $t = new Typecho_Widget_Helper_Form_Element_Radio('opt_au_length', array("none" => "无动作", "waiting" => "标记为待审核", "spam" => "标记为垃圾", "abandon" => "评论失败"), "abandon",
             _t('昵称字符长度操作'), "如果昵称长度不符合条件，则强行按该操作执行。如果选择[无动作]，将忽略下面长度的设置");
@@ -87,10 +90,12 @@ class Discuss_Plugin implements Typecho_Plugin_Interface
         $form->addInput($t);
 
         $t = new Typecho_Widget_Helper_Form_Element_Text('length_min', NULL, '3', '评论最短字符数', '允许评论的最短字符数。');
-        $form->addInput($t->input->setAttribute('class', 'mini'));
+        $t->input->setAttribute('class', 'mini');
+        $form->addInput($t);
         
         $t = new Typecho_Widget_Helper_Form_Element_Text('length_max', NULL, '200', '评论最长字符数', '允许评论的最长字符数');
-        $form->addInput($t->input->setAttribute('class', 'mini'));
+        $t->input->setAttribute('class', 'mini');
+        $form->addInput($t);
         
         $t = new Typecho_Widget_Helper_Form_Element_Radio('opt_length', array("none" => "无动作", "waiting" => "标记为待审核", "spam" => "标记为垃圾", "abandon" => "评论失败"), "abandon",
             _t('评论字符长度操作'), "如果评论中长度不符合条件，则强行按该操作执行。如果选择[无动作]，将忽略下面长度的设置");

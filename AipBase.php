@@ -287,33 +287,14 @@ class AipBase
      */
     private function curlRequest($url, $params = "", $isPost = false)
     {
-        $params = is_array($params) ? http_build_query($params) : $params;
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
-        if ($isPost) {
-            curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $params);
-            curl_setopt($ch, CURLOPT_URL, $url);
-        } else {
-            if ($params) {
-                curl_setopt($ch, CURLOPT_URL, $url . '?' . $params);
-            } else {
-                curl_setopt($ch, CURLOPT_URL, $url);
-            }
-        }
-        $response = curl_exec($ch);
-        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-
-        if ($code === 0) {
-            throw new Exception(curl_error($ch));
-        }
-
-        curl_close($ch);
+      $client = Typecho_Http_Client::get();
+      if($isPost){$client->setData($params);}
+      $response = $client->send($url);
+      //魔幻兼容
+      $code = 200;
+      if($response == ''){
+      $code = 500;
+      }
         return array(
             'code' => $code,
             'content' => $response,
