@@ -15,6 +15,13 @@ class Discuss_Plugin implements Typecho_Plugin_Interface
      */
     public static function activate()
     {
+         /**
+        * 判断是否可用HTTP库 CURL库
+        * 使用Typecho_Http_Client
+        */ 
+        if ( false == Typecho_Http_Client::get() ) {
+         throw new Typecho_Plugin_Exception( _t( '你的服务器并不支持curl!' ) );
+        }
         Typecho_Plugin::factory('Widget_Feedback')->comment = ['Discuss_Plugin', 'feedback'];
         Typecho_Plugin::factory('Widget_Feedback')->trackback = ['Discuss_Plugin', 'feedback'];
         Typecho_Plugin::factory('Widget_XmlRpc')->pingback = ['Discuss_Plugin', 'feedback'];
@@ -35,72 +42,65 @@ class Discuss_Plugin implements Typecho_Plugin_Interface
      */
     public static function config(Typecho_Widget_Helper_Form $form)
     {
-        $appId = new Typecho_Widget_Helper_Form_Element_Text('appId', null, null, _t('AppID'));
-        $form->addInput($appId->addRule('required', _t('AppID不能为空！')));
+        $t = new Typecho_Widget_Helper_Form_Element_Text('appId', null, null, _t('AppID'));
+        $form->addInput($t->addRule('required', _t('AppID不能为空！')));
 
-        $apiKey = new Typecho_Widget_Helper_Form_Element_Text('apiKey', null, null, _t('API Key'));
-        $form->addInput($apiKey->addRule('required', _t('API Key不能为空！')));
+        $t = new Typecho_Widget_Helper_Form_Element_Text('apiKey', null, null, _t('API Key'));
+        $form->addInput($t->addRule('required', _t('API Key不能为空！')));
 
-        $secretKey = new Typecho_Widget_Helper_Form_Element_Text('secretKey', null, null, _t('Secret Key'), _t("Secret Key"));
-        $form->addInput($secretKey->addRule('required', _t('Secret Key不能为空！')));
+        $t = new Typecho_Widget_Helper_Form_Element_Text('secretKey', null, null, _t('Secret Key'), _t("Secret Key"));
+        $form->addInput($t->addRule('required', _t('Secret Key不能为空！')));
 
-        $element = new Typecho_Widget_Helper_Form_Element_Radio(
+        $t = new Typecho_Widget_Helper_Form_Element_Radio(
             'checkAuthor', array(
-            '0' => '关闭',
-            '1' => '开启'
-        ), "0", _t('检查作者'), '是否检查作者的评论，开启则作者也应验证是否合法评论');
+            false => '关闭',
+            true => '开启'
+        ), false, _t('检查作者'), '是否检查作者的评论，开启则作者也应验证是否合法评论');        
         $form->addInput($element);
-
-        $authObj = new Typecho_Widget_Helper_Form_Element_Text('authObj', null, null, _t('AuthObj'), _t("此处是缓存Token，即使你修改此处，也不会保存，是插件自己更新"));
-        $form->addInput($authObj);
-
-        $au_length_min = new Typecho_Widget_Helper_Form_Element_Text('au_length_min', NULL, '2', '昵称最短字符数', '昵称允许的最短字符数。');
-        $au_length_min->input->setAttribute('class', 'mini');
-        $form->addInput($au_length_min);
-        $au_length_max = new Typecho_Widget_Helper_Form_Element_Text('au_length_max', NULL, '15', '昵称最长字符数', '昵称允许的最长字符数');
-        $au_length_max->input->setAttribute('class', 'mini');
-        $form->addInput($au_length_max);
-        $opt_au_length = new Typecho_Widget_Helper_Form_Element_Radio('opt_au_length', array("none" => "无动作", "waiting" => "标记为待审核", "spam" => "标记为垃圾", "abandon" => "评论失败"), "abandon",
+        
+        $t = new Typecho_Widget_Helper_Form_Element_Radio(
+            'ExpectionHandler', array(
+            false => '忽略评论',
+            true => '返回评论'
+        ), true, _t('紧急异常'), '当评论过滤发生错误时,你可以选择的操作');
+        
+        $form->addInput($element);
+        $t = new Typecho_Widget_Helper_Form_Element_Text('authObj', null, null, _t('AuthObj'), _t("此处是缓存Token"));
+        $form->addInput($t->input->setAttribute('readonly', 'readonly'));
+        
+        $t = new Typecho_Widget_Helper_Form_Element_Text('au_length_min', NULL, '2', '昵称最短字符数', '昵称允许的最短字符数。');        
+        $form->addInput($t->input->setAttribute('class', 'mini'));
+        
+        $t = new Typecho_Widget_Helper_Form_Element_Text('au_length_max', NULL, '15', '昵称最长字符数', '昵称允许的最长字符数');        
+        $form->addInput($t->input->setAttribute('class', 'mini'));
+        
+        $t = new Typecho_Widget_Helper_Form_Element_Radio('opt_au_length', array("none" => "无动作", "waiting" => "标记为待审核", "spam" => "标记为垃圾", "abandon" => "评论失败"), "abandon",
             _t('昵称字符长度操作'), "如果昵称长度不符合条件，则强行按该操作执行。如果选择[无动作]，将忽略下面长度的设置");
-        $form->addInput($opt_au_length);
+        $form->addInput($t);
 
-        $opt_nourl_au = new Typecho_Widget_Helper_Form_Element_Radio('opt_nourl_au', array("none" => "无动作", "waiting" => "标记为待审核", "spam" => "标记为垃圾", "abandon" => "评论失败"), "abandon",
+        $t = new Typecho_Widget_Helper_Form_Element_Radio('opt_nourl_au', array("none" => "无动作", "waiting" => "标记为待审核", "spam" => "标记为垃圾", "abandon" => "评论失败"), "abandon",
             _t('昵称网址操作'), "如果用户昵称是网址，则强行按该操作执行");
-        $form->addInput($opt_nourl_au);
+        $form->addInput($t);
 
-        $opt_nocn = new Typecho_Widget_Helper_Form_Element_Radio('opt_nocn', array("none" => "无动作", "waiting" => "标记为待审核", "spam" => "标记为垃圾", "abandon" => "评论失败"), "abandon",
+        $t = new Typecho_Widget_Helper_Form_Element_Radio('opt_nocn', array("none" => "无动作", "waiting" => "标记为待审核", "spam" => "标记为垃圾", "abandon" => "评论失败"), "abandon",
             _t('无中文评论操作'), "如果评论中不包含中文，则强行按该操作执行");
-        $form->addInput($opt_nocn);
+        $form->addInput($t);
 
-        $length_min = new Typecho_Widget_Helper_Form_Element_Text('length_min', NULL, '3', '评论最短字符数', '允许评论的最短字符数。');
-        $length_min->input->setAttribute('class', 'mini');
-        $form->addInput($length_min);
-        $length_max = new Typecho_Widget_Helper_Form_Element_Text('length_max', NULL, '200', '评论最长字符数', '允许评论的最长字符数');
-        $length_max->input->setAttribute('class', 'mini');
-        $form->addInput($length_max);
-        $opt_length = new Typecho_Widget_Helper_Form_Element_Radio('opt_length', array("none" => "无动作", "waiting" => "标记为待审核", "spam" => "标记为垃圾", "abandon" => "评论失败"), "abandon",
+        $t = new Typecho_Widget_Helper_Form_Element_Text('length_min', NULL, '3', '评论最短字符数', '允许评论的最短字符数。');
+        $form->addInput($t->input->setAttribute('class', 'mini'));
+        
+        $t = new Typecho_Widget_Helper_Form_Element_Text('length_max', NULL, '200', '评论最长字符数', '允许评论的最长字符数');
+        $form->addInput($t->input->setAttribute('class', 'mini'));
+        
+        $t = new Typecho_Widget_Helper_Form_Element_Radio('opt_length', array("none" => "无动作", "waiting" => "标记为待审核", "spam" => "标记为垃圾", "abandon" => "评论失败"), "abandon",
             _t('评论字符长度操作'), "如果评论中长度不符合条件，则强行按该操作执行。如果选择[无动作]，将忽略下面长度的设置");
-        $form->addInput($opt_length);
+        $form->addInput($t);
 
     }
 
 
     /**
-     * @param $config
-     * @param $isInit
-     * @throws Typecho_Exception
-     */
-    public static function configHandle($config, $isInit)
-    {
-        if (!$isInit) {
-            $before = Typecho_Widget::widget('Widget_Options')->plugin('Discuss');
-            $config['authObj'] = $before->authObj;
-        }
-        Helper::configPlugin('Discuss', $config);
-    }
-
-    /**
-     * @param Typecho_Widget_Helper_Form $form
+    configHandle 仅仅为了实现配置不变 不值得浪费 已删除    
      */
     public static function personalConfig(Typecho_Widget_Helper_Form $form)
     {
@@ -116,10 +116,9 @@ class Discuss_Plugin implements Typecho_Plugin_Interface
      * @noinspection DuplicatedCode
      */
     public static function feedback($comment, $post)
-    {
-        $option = Helper::options()->plugin('Discuss');
-        $checkAuthor = $option->checkAuthor;
-        if ($checkAuthor == 0) {
+    {      
+        $option = Helper::options()->plugin('Discuss');  
+        if (!$option->checkAuthor) {
             $user = Typecho_Widget::widget('Widget_User');
             if ($user->hasLogin()) {
                 if ($user->__get('uid') == $post->author->uid) {
@@ -140,7 +139,10 @@ class Discuss_Plugin implements Typecho_Plugin_Interface
             $client = AipBase::getInstance();
             $conclusion = $client->startCensor($comment['text']);
         } catch (Exception $e) {
+            //此处欠考虑 暂时这样
+            if ($option->checkAuthor) {
             return $comment;
+            }
         }
 
         // analyze
